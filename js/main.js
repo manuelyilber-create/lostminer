@@ -1,5 +1,5 @@
 // js/main.js
-import { CONFIG } from './config.js';
+import { CONFIG } from './config.js'; // config.js está en la misma carpeta js/
 import { World } from './world/terrain.js';
 import { Player } from './entities/player.js';
 import { Animal } from './entities/animals.js';
