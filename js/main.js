@@ -9,6 +9,7 @@ import { Physics } from './engine/physics.js';
 import { ParticleSystem } from './engine/particles.js';
 import { HUD } from './ui/hud.js';
 import { CraftingSystem } from './ui/crafting.js';
+import { TouchControls } from './ui/touchControls.js';
 import { BLOCKS, BLOCK_PROPERTIES } from './world/blockData.js';
 
 const canvas = document.getElementById('gameCanvas');
@@ -19,34 +20,39 @@ const crafting = new CraftingSystem();
 const world = new World();
 world.generate();
 
-// Spawn del Jugador
+// Spawn del Jugador en la superficie
 const spawnX = (CONFIG.WORLD_WIDTH * CONFIG.TILE_SIZE) / 2;
 const player = new Player(spawnX, 100);
 
-// Spawn de Animales
+// Spawn de Animales Pasivos (Ovejas)
 const animals = [];
 for (let i = 0; i < 8; i++) {
     const animalX = spawnX + (Math.random() - 0.5) * 600;
     animals.push(new Animal(animalX, 100, 'sheep'));
 }
 
+// Lista de Monstruos Nocturnos
 const monsters = [];
-let keys = {};
-let timeOfDay = 0.2;
 
-// Desactivar menú contextual
+let keys = {};
+let timeOfDay = 0.2; // Inicio de mañana
+
+// Inicializar Controles Táctiles para Celular
+const touchControls = new TouchControls(canvas, keys);
+
+// Desactivar menú contextual con clic derecho
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
-// Controles Teclado
+// Listener de Teclado (PC)
 window.addEventListener('keydown', (e) => { 
     keys[e.key] = true; 
     
-    // Abrir/Cerrar Crafteo
+    // Abrir / Cerrar Crafteo con tecla E
     if (e.key.toLowerCase() === 'e') {
         crafting.toggle();
     }
 
-    // Selección de Hotbar (1 - 5)
+    // Seleccionar slot del inventario rápido (1 al 5)
     if (e.key >= '1' && e.key <= '5') {
         hud.selectSlot(parseInt(e.key) - 1);
     }
@@ -54,30 +60,30 @@ window.addEventListener('keydown', (e) => {
 
 window.addEventListener('keyup', (e) => { keys[e.key] = false; });
 
-// Interacción con Ratón / Toque
-canvas.addEventListener('mousedown', (e) => {
+// Interacción para Romper y Poner Bloques (Ratón y Toque Táctil)
+const handleAction = (clientX, clientY, button) => {
     const rect = canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+    const mouseX = (clientX - rect.left) * (canvas.width / rect.width);
+    const mouseY = (clientY - rect.top) * (canvas.height / rect.height);
 
     const cameraX = player.x - CONFIG.CANVAS_WIDTH / 2;
     const cameraY = player.y - CONFIG.CANVAS_HEIGHT / 2;
     const worldX = Math.floor((mouseX + cameraX) / CONFIG.TILE_SIZE);
     const worldY = Math.floor((mouseY + cameraY) / CONFIG.TILE_SIZE);
 
-    if (e.button === 0) {
-        // Clic Izquierdo: Romper bloque
+    if (button === 0) {
+        // Romper bloque
         const blockId = world.getBlock(worldX, worldY);
         if (blockId !== BLOCKS.AIR) {
             const props = BLOCK_PROPERTIES[blockId];
             const particleX = worldX * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
             const particleY = worldY * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
             
-            particleSystem.spawnBlockParticles(particleX, particleY, props.color || '#fff', 15);
+            particleSystem.spawnBlockParticles(particleX, particleY, props?.color || '#fff', 15);
             world.setBlock(worldX, worldY, BLOCKS.AIR);
         }
-    } else if (e.button === 2) {
-        // Clic Derecho: Colocar bloque
+    } else if (button === 2) {
+        // Colocar bloque
         const selectedItem = hud.hotbar[hud.selectedSlot];
         if (selectedItem && selectedItem.count > 0) {
             if (world.getBlock(worldX, worldY) === BLOCKS.AIR) {
@@ -86,19 +92,23 @@ canvas.addEventListener('mousedown', (e) => {
             }
         }
     }
-});
+};
 
-// Bucle Principal de Juego
+canvas.addEventListener('mousedown', (e) => handleAction(e.clientX, e.clientY, e.button));
+
+// Bucle Principal del Juego (Game Loop)
 function gameLoop() {
+    // Paso del Tiempo (Ciclo Sol/Luna)
     timeOfDay = (timeOfDay + 0.0002) % 1.0;
     const isNight = Math.sin(timeOfDay * Math.PI) < 0.2;
 
-    // Aparición de Monstruos Nocturnos
+    // Generar Monstruos en la Noche
     if (isNight && monsters.length < 4 && Math.random() < 0.01) {
         const spawnDistance = (Math.random() > 0.5 ? 1 : -1) * (200 + Math.random() * 150);
         monsters.push(new Monster(player.x + spawnDistance, 100));
     }
 
+    // Actualización de Entidades si el menú no está abierto
     if (!crafting.isOpen) {
         player.update(keys);
         Physics.checkWorldCollision(player, world);
@@ -116,9 +126,10 @@ function gameLoop() {
         particleSystem.update();
     }
 
-    // Renderizado
+    // Renderizado del Escenario y Cielo
     renderer.render(world, player, timeOfDay);
     
+    // Renderizado de Entidades sobre la Cámara
     const ctx = renderer.ctx;
     const camera = {
         x: player.x - CONFIG.CANVAS_WIDTH / 2,
@@ -131,11 +142,13 @@ function gameLoop() {
     particleSystem.render(ctx, camera);
     ctx.restore();
 
-    // Renderizado de Interfaces de Usuario
+    // Renderizado de Interfaces (HUD, Crafteo y Botones Táctiles)
     hud.render(ctx, player);
     crafting.render(ctx, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
+    touchControls.render(ctx);
 
     requestAnimationFrame(gameLoop);
 }
 
+// Iniciar el juego
 gameLoop();
