@@ -8,8 +8,7 @@ export class Environment {
         this.birds = [];
         this.fish = [];
 
-        // Generar Nubes
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < 8; i++) {
             this.clouds.push({
                 x: Math.random() * CONFIG.WORLD_WIDTH * CONFIG.TILE_SIZE,
                 y: 20 + Math.random() * 80,
@@ -18,8 +17,7 @@ export class Environment {
             });
         }
 
-        // Generar Aves Volando
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 4; i++) {
             this.birds.push({
                 x: Math.random() * CONFIG.WORLD_WIDTH * CONFIG.TILE_SIZE,
                 y: 40 + Math.random() * 100,
@@ -28,8 +26,7 @@ export class Environment {
             });
         }
 
-        // Generar Peces
-        for (let i = 0; i < 8; i++) {
+        for (let i = 0; i < 6; i++) {
             this.fish.push({
                 x: Math.random() * CONFIG.WORLD_WIDTH * CONFIG.TILE_SIZE,
                 y: (CONFIG.SEA_LEVEL + 3) * CONFIG.TILE_SIZE,
@@ -40,26 +37,21 @@ export class Environment {
     }
 
     update(world) {
-        // Mover Nubes
         this.clouds.forEach(c => {
             c.x += c.speed;
             if (c.x > CONFIG.WORLD_WIDTH * CONFIG.TILE_SIZE) c.x = -100;
         });
 
-        // Mover Aves
         this.birds.forEach(b => {
             b.x += b.vx;
             b.wingCycle += 0.2;
             if (b.x > CONFIG.WORLD_WIDTH * CONFIG.TILE_SIZE) b.x = -50;
         });
 
-        // Mover Peces en el agua
         this.fish.forEach(f => {
             f.x += f.vx;
             const tileX = Math.floor(f.x / CONFIG.TILE_SIZE);
             const tileY = Math.floor(f.y / CONFIG.TILE_SIZE);
-
-            // Si sale del agua, cambia de sentido
             if (world.getBlock(tileX, tileY) !== BLOCKS.WATER) {
                 f.vx *= -1;
             }
@@ -68,8 +60,6 @@ export class Environment {
 
     render(ctx, camera) {
         ctx.save();
-
-        // ☁️ Renderizar Nubes
         ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
         this.clouds.forEach(c => {
             const drawX = c.x - camera.x;
@@ -80,7 +70,6 @@ export class Environment {
             ctx.fill();
         });
 
-        // 🦅 Renderizar Aves HD
         ctx.strokeStyle = "#1a1a1a";
         ctx.lineWidth = 2;
         this.birds.forEach(b => {
@@ -93,20 +82,12 @@ export class Environment {
             ctx.stroke();
         });
 
-        // 🐟 Renderizar Peces HD
         this.fish.forEach(f => {
             const drawX = f.x - camera.x;
             const drawY = f.y - camera.y;
-
             ctx.fillStyle = f.color;
             ctx.fillRect(drawX, drawY, 8, 4);
-            // Cola
-            ctx.fillRect(f.vx > 0 ? drawX - 3 : drawX + 8, drawY - 1, 3, 6);
-            // Ojo
-            ctx.fillStyle = "#fff";
-            ctx.fillRect(f.vx > 0 ? drawX + 6 : drawX + 1, drawY + 1, 1, 1);
         });
-
         ctx.restore();
     }
 }
