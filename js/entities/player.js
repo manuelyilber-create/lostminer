@@ -7,29 +7,20 @@ export class Player {
         this.y = y;
         this.vx = 0;
         this.vy = 0;
-        
-        // Dimensiones HD
         this.width = 16;
         this.height = 34;
-        
-        // Estado Físico
         this.grounded = false;
-        this.facing = 1; // 1: Derecha, -1: Izquierda
-        
-        // Atributos
+        this.facing = 1;
         this.hp = 20;
         this.maxHp = 20;
-        
-        // Animaciones del Rostro
         this.blinkTimer = 0;
         this.isBlinking = false;
         this.walkCycle = 0;
+        this.equippedWeapon = 'rifle'; // Arma equipada por defecto
     }
 
     update(keys) {
         const speed = 2.4;
-
-        // Movimiento Horizontal
         if (keys['a'] || keys['ArrowLeft']) {
             this.vx = -speed;
             this.facing = -1;
@@ -39,21 +30,18 @@ export class Player {
             this.facing = 1;
             this.walkCycle += 0.2;
         } else {
-            this.vx *= 0.5; // Fricción suave
+            this.vx *= 0.5;
             this.walkCycle = 0;
         }
 
-        // Salto
         if ((keys['w'] || keys[' '] || keys['ArrowUp']) && this.grounded) {
             this.vy = -7.5;
             this.grounded = false;
         }
 
-        // Aplicar Gravedad
         this.vy += CONFIG.GRAVITY;
         if (this.vy > CONFIG.MAX_FALL_SPEED) this.vy = CONFIG.MAX_FALL_SPEED;
 
-        // Lógica de Parpadeo del Rostro
         this.blinkTimer++;
         if (this.blinkTimer > 180) {
             this.isBlinking = true;
@@ -70,8 +58,8 @@ export class Player {
 
         ctx.save();
         
-        // --- 1. PIERNAS Y PANTALONES ---
-        ctx.fillStyle = "#1c315e"; // Jeans HD
+        // 1. PIERNAS Y PANTALONES
+        ctx.fillStyle = "#1c315e";
         const legOffset = Math.sin(this.walkCycle) * 3;
         ctx.fillRect(drawX + 3, drawY + 22, 4, 12 + legOffset);
         ctx.fillRect(drawX + 9, drawY + 22, 4, 12 - legOffset);
@@ -80,47 +68,51 @@ export class Player {
         ctx.fillStyle = "#111";
         ctx.fillRect(drawX + (this.facing === 1 ? 4 : 2), drawY + 32, 5, 2);
 
-        // --- 2. TORSO Y ROสั่ง (CAMISA HD) ---
-        ctx.fillStyle = "#a82e2e"; // Camisa Roja Detallada
+        // 2. TORSO Y CAMISA HD
+        ctx.fillStyle = "#a82e2e";
         ctx.fillRect(drawX + 2, drawY + 11, 12, 12);
-        // Dobladillo
-        ctx.fillStyle = "#7a1f1f";
-        ctx.fillRect(drawX + 2, drawY + 21, 12, 2);
 
-        // --- 3. CABEZA Y ROSTRO REALISTA ---
-        // Piel base
+        // 3. CABEZA Y ROSTRO REALISTA
         ctx.fillStyle = "#e8b88b";
         ctx.fillRect(drawX + 2, drawY + 1, 12, 10);
 
-        // Cabello con relieve
-        ctx.fillStyle = "#4a2d18";
-        ctx.fillRect(drawX + 1, drawY, 14, 4); // Flequillo superior
-        ctx.fillRect(drawX + (this.facing === 1 ? 1 : 11), drawY + 3, 4, 5); // Patilla
+        ctx.fillStyle = "#4a2d18"; // Cabello
+        ctx.fillRect(drawX + 1, drawY, 14, 4);
 
-        // ROSTRO: Ojos y Detalles Visibles
         const eyeX = drawX + (this.facing === 1 ? 9 : 3);
-        
         if (!this.isBlinking) {
-            // Esclerótica (Blanco del ojo)
             ctx.fillStyle = "#ffffff";
             ctx.fillRect(eyeX, drawY + 4, 3, 3);
-            
-            // Iris/Pupila detallada
-            ctx.fillStyle = "#2b5c28"; // Ojos Verdes
+            ctx.fillStyle = "#2b5c28"; // Iris
             ctx.fillRect(eyeX + (this.facing === 1 ? 1 : 0), drawY + 4, 2, 3);
-            
-            // Brillo en la pupila
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(eyeX + (this.facing === 1 ? 2 : 0), drawY + 4, 1, 1);
         } else {
-            // Ojo Parpadeando (Párpado cerrado)
             ctx.fillStyle = "#aa7755";
             ctx.fillRect(eyeX, drawY + 5, 3, 1);
         }
 
-        // BOCA Y EXPRESIÓN
-        ctx.fillStyle = "#a35c4c";
-        ctx.fillRect(drawX + (this.facing === 1 ? 8 : 4), drawY + 8, 2, 1);
+        // 4. ARMA HD ULTRADETALLADA EN MANO
+        if (this.equippedWeapon === 'rifle') {
+            const gunX = drawX + (this.facing === 1 ? 10 : -12);
+            const gunY = drawY + 14;
+
+            // Cañón Metálico
+            ctx.fillStyle = "#2b2b2b";
+            ctx.fillRect(gunX, gunY, 14, 3);
+            
+            // Cuerpo / Receptor
+            ctx.fillStyle = "#4f4f4f";
+            ctx.fillRect(gunX + (this.facing === 1 ? 2 : 4), gunY - 2, 6, 5);
+
+            // Empuñadura de Madera
+            ctx.fillStyle = "#614126";
+            ctx.fillRect(gunX + (this.facing === 1 ? 4 : 6), gunY + 3, 3, 4);
+
+            // Mira Telescópica HD
+            ctx.fillStyle = "#111";
+            ctx.fillRect(gunX + 3, gunY - 4, 6, 2);
+            ctx.fillStyle = "#00ffff"; // Brillo del lente
+            ctx.fillRect(gunX + (this.facing === 1 ? 8 : 3), gunY - 4, 1, 2);
+        }
 
         ctx.restore();
     }
