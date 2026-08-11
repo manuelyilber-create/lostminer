@@ -1,8 +1,14 @@
 // js/engine/audio.js
 export class SoundEngine {
     constructor() {
-        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-        this.volume = 0.5; // Volumen por defecto (50%)
+        this.ctx = null;
+        this.volume = 0.5;
+    }
+
+    init() {
+        if (!this.ctx) {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
     }
 
     setVolume(level) {
@@ -10,7 +16,7 @@ export class SoundEngine {
     }
 
     playBreakSound() {
-        if (this.volume <= 0) return;
+        if (!this.ctx || this.volume <= 0) return;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'square';
@@ -25,7 +31,7 @@ export class SoundEngine {
     }
 
     playJumpSound() {
-        if (this.volume <= 0) return;
+        if (!this.ctx || this.volume <= 0) return;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'sine';
