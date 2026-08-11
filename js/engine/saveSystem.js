@@ -4,7 +4,7 @@ export class SaveSystem {
 
     static saveGame(player, world, hud, playerName, volume) {
         const saveData = {
-            playerName: playerName || 'Minero',
+            playerName: playerName || 'Yilber',
             volume: volume,
             player: {
                 x: player.x,
@@ -16,7 +16,7 @@ export class SaveSystem {
             timestamp: Date.now()
         };
         localStorage.setItem(this.SAVE_KEY, JSON.stringify(saveData));
-        console.log("¡Partida guardada exitosamente!");
+        alert("¡Partida guardada con éxito!");
     }
 
     static loadGame() {
