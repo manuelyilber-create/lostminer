@@ -8,12 +8,14 @@ import { Renderer } from './engine/renderer.js';
 import { Physics } from './engine/physics.js';
 import { ParticleSystem } from './engine/particles.js';
 import { HUD } from './ui/hud.js';
+import { CraftingSystem } from './ui/crafting.js';
 import { BLOCKS, BLOCK_PROPERTIES } from './world/blockData.js';
 
 const canvas = document.getElementById('gameCanvas');
 const renderer = new Renderer(canvas);
 const particleSystem = new ParticleSystem();
 const hud = new HUD();
+const crafting = new CraftingSystem();
 const world = new World();
 world.generate();
 
@@ -21,7 +23,7 @@ world.generate();
 const spawnX = (CONFIG.WORLD_WIDTH * CONFIG.TILE_SIZE) / 2;
 const player = new Player(spawnX, 100);
 
-// Animales Pasivos
+// Spawn de Animales
 const animals = [];
 for (let i = 0; i < 8; i++) {
     const animalX = spawnX + (Math.random() - 0.5) * 600;
@@ -29,17 +31,22 @@ for (let i = 0; i < 8; i++) {
 }
 
 const monsters = [];
-
 let keys = {};
 let timeOfDay = 0.2;
 
-// Desactivar menú contextual con clic derecho
+// Desactivar menú contextual
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
+// Controles Teclado
 window.addEventListener('keydown', (e) => { 
     keys[e.key] = true; 
     
-    // Selección de Hotbar por Teclado (Teclas 1 - 5)
+    // Abrir/Cerrar Crafteo
+    if (e.key.toLowerCase() === 'e') {
+        crafting.toggle();
+    }
+
+    // Selección de Hotbar (1 - 5)
     if (e.key >= '1' && e.key <= '5') {
         hud.selectSlot(parseInt(e.key) - 1);
     }
@@ -47,7 +54,7 @@ window.addEventListener('keydown', (e) => {
 
 window.addEventListener('keyup', (e) => { keys[e.key] = false; });
 
-// --- INTERACCIÓN: ROMPER CON CLIC IZQUIERDO / PONER CON CLIC DERECHO ---
+// Interacción con Ratón / Toque
 canvas.addEventListener('mousedown', (e) => {
     const rect = canvas.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
@@ -70,7 +77,7 @@ canvas.addEventListener('mousedown', (e) => {
             world.setBlock(worldX, worldY, BLOCKS.AIR);
         }
     } else if (e.button === 2) {
-        // Clic Derecho: Colocar bloque seleccionado
+        // Clic Derecho: Colocar bloque
         const selectedItem = hud.hotbar[hud.selectedSlot];
         if (selectedItem && selectedItem.count > 0) {
             if (world.getBlock(worldX, worldY) === BLOCKS.AIR) {
@@ -81,30 +88,35 @@ canvas.addEventListener('mousedown', (e) => {
     }
 });
 
+// Bucle Principal de Juego
 function gameLoop() {
     timeOfDay = (timeOfDay + 0.0002) % 1.0;
     const isNight = Math.sin(timeOfDay * Math.PI) < 0.2;
 
+    // Aparición de Monstruos Nocturnos
     if (isNight && monsters.length < 4 && Math.random() < 0.01) {
         const spawnDistance = (Math.random() > 0.5 ? 1 : -1) * (200 + Math.random() * 150);
         monsters.push(new Monster(player.x + spawnDistance, 100));
     }
 
-    player.update(keys);
-    Physics.checkWorldCollision(player, world);
+    if (!crafting.isOpen) {
+        player.update(keys);
+        Physics.checkWorldCollision(player, world);
 
-    animals.forEach(animal => {
-        animal.update(world);
-        Physics.checkWorldCollision(animal, world);
-    });
+        animals.forEach(animal => {
+            animal.update(world);
+            Physics.checkWorldCollision(animal, world);
+        });
 
-    monsters.forEach(monster => {
-        monster.update(player, world);
-        Physics.checkWorldCollision(monster, world);
-    });
+        monsters.forEach(monster => {
+            monster.update(player, world);
+            Physics.checkWorldCollision(monster, world);
+        });
 
-    particleSystem.update();
+        particleSystem.update();
+    }
 
+    // Renderizado
     renderer.render(world, player, timeOfDay);
     
     const ctx = renderer.ctx;
@@ -119,8 +131,9 @@ function gameLoop() {
     particleSystem.render(ctx, camera);
     ctx.restore();
 
-    // Renderizar Interfaz de Usuario (HUD) encima de todo
+    // Renderizado de Interfaces de Usuario
     hud.render(ctx, player);
+    crafting.render(ctx, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
 
     requestAnimationFrame(gameLoop);
 }
